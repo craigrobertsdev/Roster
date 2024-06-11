@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Roster
 A shift worker roster to manage teams of rotating shift workers
 =======
@@ -40,4 +39,3 @@ npm run build
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
->>>>>>> 297944d (Initial commit)

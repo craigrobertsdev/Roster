@@ -2,6 +2,7 @@
 	import { onMount } from "svelte";
 	import type { Employee, Shift, ShiftCode } from "../../types/types";
 	import { generateDummyData, addDays } from "../../models/dummy";
+	import GridCell from "./GridCell.svelte";
 
 	type Cell = {
 		top: number;
@@ -11,12 +12,12 @@
 
 	let viewportWidth: number;
 	let viewportHeight: number;
-	const colWidth = 25;
+	const colWidth = 35;
+	const rowHeight = 25;
 	const daysInYear: Date[] = [];
 	for (let i = 0; i < 365; i++) {
 		daysInYear.push(addDays(new Date(), i));
 	}
-	let rowHeight: number; // determined by one of the header cells
 	let headerGridWidth: number;
 	let headerGridHeight: number;
 	let endCol: number;
@@ -37,7 +38,7 @@
 
 	let startCol = 0;
 	let startRow = 0;
-	let employees = generateDummyData(50);
+	let employees = generateDummyData(10);
 	// let cells: Cell[] = createCells(employees, startCol, startRow, endCol, endRow);
 
 	// function createCells(employees: Employee[], startCol: number, startRow: number, endCol: number, endRow: number);) {
@@ -57,7 +58,7 @@
 		bind:clientHeight={headerGridHeight}
 		class="header-grid"
 	>
-		<div bind:clientHeight={rowHeight} class="cell header-cell top-row">ID</div>
+		<div class="cell header-cell top-row">ID</div>
 		<div class="cell header-cell top-row">Rank</div>
 		<div class="cell header-cell name-cell top-row">First Name</div>
 		<div class="cell header-cell name-cell top-row">Last Name</div>
@@ -81,9 +82,11 @@
 
 	<div class="grid-container">
 		<div class="roster-grid">
-			<div class="test-1"></div>
-			<div class="test-2"></div>
-			<div class="test-3"></div>
+			{#each employees as e, i}
+				{#each daysInYear as d, j}
+					<GridCell top="{i * rowHeight}px" left="{j * colWidth}px">{e.shifts[i].code}</GridCell>
+				{/each}
+			{/each}
 		</div>
 	</div>
 </div>
@@ -121,7 +124,6 @@
 		grid-row: 2;
 		grid-column: 2;
 		width: 100%;
-		background-color: blue;
 	}
 
 	.name-cell {

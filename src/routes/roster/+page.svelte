@@ -2,7 +2,6 @@
   import { onMount } from "svelte";
   import type { Employee, Shift, ShiftCode } from "../../types/types";
   import { generateDummyData, addDays } from "../../models/dummy";
-  import GridCell from "./GridCell.svelte";
 
   type Cell = {
     top: number;
@@ -25,45 +24,42 @@
   let employees = generateDummyData(50);
   let colsPerScreen: number;
   let rowsPerScreen: number;
-  let renderedCells: Cell[][] = [];
-  let objPool: Cell[] = [];
+  let data: Cell[][] = [];
+  let visibleCells: Cell[][] = [];
 
   onMount(() => {
     viewportWidth = document.body.clientWidth;
     viewportHeight = document.body.clientHeight;
     colsPerScreen = Math.min(daysInYear.length, Math.ceil((viewportWidth - headerGridWidth) / colWidth));
     rowsPerScreen = Math.min(employees.length, Math.ceil((viewportHeight - rowHeight) / rowHeight));
-    renderedCells = createCellsForFirstRender(employees, startCol, startRow, colsPerScreen, rowsPerScreen);
+    data = createCellsForFirstRender(employees, startCol, startRow, colsPerScreen, rowsPerScreen);
+    visibleCells = getVisibleCells();
   });
 
   function handleScroll(event: Event) {
-    console.log("Scroll event");
     const target = event.target as HTMLElement;
     const newTop = Math.floor(target.scrollTop / rowHeight);
     const newLeft = Math.floor(target.scrollLeft / colWidth);
 
     if (startRow === newTop && startCol !== newLeft) {
-      const dist = Math.abs(newLeft - startCol);
-      const direction = newLeft < startCol ? "left" : "right";
       startCol = newLeft;
-      renderHorizontal(dist, target.scrollLeft, direction);
-      renderedCells = renderedCells;
+      visibleCells = getVisibleCells();
       return;
     }
 
     if (startCol === newLeft && startRow !== newTop) {
       const dist = newTop - startRow;
       startRow = newTop;
-      renderVertical(dist, target.scrollLeft, target.scrollTop, newTop < startRow ? "up" : "down");
+      visibleCells = getVisibleCells();
     }
   }
 
-  function createCellsForFirstRender(employees: Employee[], startCol: number, startRow: number, endCol: number, endRow: number) {
+  function createCellsForFirstRender(employees: Employee[]) {
     const cells: Cell[][] = [];
 
-    for (let i = startRow; i < endRow; i++) {
+    for (let i = 0; i < employees.length; i++) {
       const row: Cell[] = [];
-      for (let j = startCol; j < endCol; j++) {
+      for (let j = 0; j < employees[i].shifts.length; j++) {
         row.push({
           top: i * rowHeight,
           left: j * colWidth,
@@ -75,41 +71,14 @@
     return cells;
   }
 
-  function renderHorizontal(dist: number, scrollX: number, direction: "left" | "right") {
-    console.log("horizontal rendering");
-    if (direction === "right") {
-      // first: go over the currently rendered cells and move them left by the distance
-      // second: shift the cells at the end to an object pool
-      for (const row of renderedCells) {
-        for (let k = 0; k < dist; k++) {
-          objPool.push(row[k]);
-        }
-
-        for (let j = dist; j < row.length; j++) {
-          row[j - dist] = row[j];
-        }
-      }
-      // third: from the object pool - create new cells to cover the gap between the distance scrolled and the colsPerScreen
-      for (let i = startRow; i < rowsPerScreen; i++) {
-        for (let j = renderedCells[i].length - dist; j < renderedCells[i].length; j++) {
-          const cell = objPool.length > 0 ? (objPool.pop() as Cell) : ({} as Cell);
-          cell.left = renderedCells[i][j - 1].left + colWidth;
-          cell.top = renderedCells[i][0].top;
-          cell.content = employees[i].shifts[startRow + j].code;
-
-          renderedCells[i][renderedCells[i].length - 1] = cell;
-        }
-      }
-    } else {
-    }
+  function getVisibleCells() {
+    return data.slice(startRow, startRow + rowsPerScreen).map((col) => col.slice(startCol, startCol + colsPerScreen));
   }
-
-  function renderVertical(dist: number, scrollX: number, scrollY: number, direction: "up" | "down") {}
 </script>
 
 <h1>Welcome to the roster</h1>
 
-<div class="container" on:scroll|stopPropagation|capture|passive="{handleScroll}">
+<div class="container" on:scroll|stopPropagation|capture="{handleScroll}">
   <!-- Employee details grid -->
   <div bind:clientWidth="{headerGridWidth}" bind:clientHeight="{headerGridHeight}" class="header-grid">
     <div class="cell header-cell top-row">ID</div>
@@ -136,7 +105,7 @@
 
   <div class="grid-container">
     <div class="roster-grid">
-      {#each renderedCells as row}
+      {#each visibleCells as row}
         {#each row as cell}
           <div class="grid-cell" style:top="{cell.top}px" style:left="{cell.left}px">
             {cell.content}
